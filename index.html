@@ -1,39 +1,170 @@
-
-async function loadSales() {
-  const table = $('salesTable');
-
-  if (table) {
-    table.innerHTML = '<div class="empty">Carregando vendas...</div>';
-  }
-
-  const { data, error } = await db
-    .from('sales')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(500);
-
-  if (error) {
-    console.error('Erro ao carregar vendas:', error);
-
-    sales = [];
-
-    if (table) {
-      table.innerHTML =
-        '<div class="notice">Não foi possível carregar as vendas.<br><b>Erro do Supabase:</b> ' +
-        esc(error.message) +
-        '</div>';
-    }
-
-    renderDashboard();
-    renderReports();
-    renderCash();
-    return;
-  }
-
-  sales = data || [];
-
-  renderSales();
-  renderDashboard();
-  renderReports();
-  renderCash();
-}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Galpão do Gelo | Gestão Comercial</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#111c35;--navy2:#1a2b4d;--blue:#2864e8;--blue2:#eaf0ff;--bg:#f4f6fb;--text:#202b3c;--muted:#718096;--line:#e5eaf2;--green:#169b62;--red:#d74747;--white:#fff;--shadow:0 8px 24px #1b2b4b0d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,Segoe UI,Arial,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:9px;padding:10px 14px;font-weight:650}button:disabled{opacity:.5;cursor:not-allowed}.primary{background:var(--blue);color:white}.secondary{background:#edf1f7;color:#26354b}.danger{background:#fff0f0;color:var(--red)}.success{background:#e7f8ef;color:#11764a}.wrap{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:245px;background:var(--navy);color:#d8e1f2;padding:22px 14px;display:flex;flex-direction:column;z-index:5}.brand{display:flex;align-items:center;gap:11px;padding:0 10px 25px;border-bottom:1px solid #ffffff18}.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#3984ff,#1c52c5);display:grid;place-items:center;color:#fff;font-size:22px;font-weight:900}.brand b{display:block;color:#fff;font-size:15px}.brand small{color:#a8b7d2;font-size:11px}.navlabel{padding:22px 12px 8px;color:#8393b2;font-size:10px;letter-spacing:1.4px;font-weight:800}.nav{display:grid;gap:5px}.nav button{background:transparent;color:#bdc9df;text-align:left;display:flex;align-items:center;gap:12px;padding:12px;border-radius:9px;font-weight:550}.nav button:hover,.nav button.active{background:#263a60;color:#fff}.nav .ico{width:20px;text-align:center;font-size:16px}.sidebar-foot{margin-top:auto;border-top:1px solid #ffffff18;padding:16px 8px 0;color:#a8b7d2;font-size:12px}.main{margin-left:245px;min-height:100vh}.topbar{height:72px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:sticky;top:0;z-index:4}.crumb{font-size:12px;color:var(--muted)}.topbar h2{font-size:19px;margin:3px 0 0}.userchip{display:flex;gap:10px;align-items:center}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--blue2);color:var(--blue);font-weight:800}.content{padding:27px 30px;max-width:1600px;margin:auto}.pagehead{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:22px}.pagehead h1{font-size:23px;margin:0 0 5px}.pagehead p{margin:0;color:var(--muted)}.grid{display:grid;gap:17px}.stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:20px}.stat,.panel,.card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}.stat{padding:19px}.stat-top{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;font-weight:650}.stat-icon{width:35px;height:35px;border-radius:10px;background:var(--blue2);color:var(--blue);display:grid;place-items:center;font-size:17px}.stat strong{display:block;font-size:26px;margin:14px 0 6px;letter-spacing:-.5px}.stat small{color:var(--muted)}.two{grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr)}.panel{padding:20px;margin-bottom:18px;min-width:0}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}.panel h3{font-size:15px;margin:0}.muted{color:var(--muted)}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th{text-align:left;font-size:11px;color:var(--muted);font-weight:750;background:#f8faff}th,td{padding:13px 12px;border-bottom:1px solid var(--line)}td{font-size:13px}tbody tr:last-child td{border-bottom:0}.pill{display:inline-flex;padding:5px 9px;border-radius:30px;font-size:11px;font-weight:750;background:#edf2fa;color:#506078}.pill.green{background:#e5f8ed;color:#13784c}.pill.red{background:#fff0f0;color:#b93131}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.field{display:grid;gap:6px;margin-bottom:13px}.field label{font-size:12px;color:#59677c;font-weight:700}.field input,.field select,.field textarea,.toolbar input,.toolbar select{border:1px solid #dce3ed;background:#fff;border-radius:9px;padding:11px 12px;outline:none;min-width:0;color:var(--text)}.field input:focus,.field select:focus,.field textarea:focus,.toolbar input:focus{border-color:#8eafff;box-shadow:0 0 0 3px #2864e812}.toolbar input{flex:1;min-width:170px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 13px}.span2{grid-column:span 2}.empty{text-align:center;padding:35px;color:var(--muted)}.notice{padding:12px 14px;border-radius:10px;background:#eef4ff;color:#34517f;font-size:12px;margin-bottom:16px}.actions{display:flex;gap:6px}.actions button{padding:7px 9px;font-size:12px}.hidden{display:none!important}.login{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#101b34,#1f4381);padding:20px}.loginbox{background:white;width:min(430px,100%);padding:32px;border-radius:18px;box-shadow:0 24px 80px #0003}.loginbrand{display:flex;align-items:center;gap:12px;margin-bottom:25px}.loginbrand h1{font-size:22px;margin:0}.loginbrand p{margin:4px 0;color:var(--muted)}.loginbox .primary{width:100%;padding:13px}.loginmsg{color:var(--red);font-size:12px;margin:10px 0}.productlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-height:430px;overflow:auto}.productbtn{border:1px solid var(--line);background:#fff;text-align:left;padding:13px;border-radius:10px;color:var(--text)}.productbtn:hover{border-color:var(--blue);background:#f7f9ff}.productbtn b{display:block;margin-bottom:8px;white-space:normal}.productbtn small{color:var(--muted)}.cartline{display:grid;grid-template-columns:minmax(0,1fr) 68px 85px 30px;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.cartline input{width:68px;padding:8px;border:1px solid var(--line);border-radius:7px}.totals{display:grid;gap:10px;margin-top:16px}.totalrow{display:flex;justify-content:space-between;gap:10px}.grand{font-size:22px;font-weight:850;padding-top:12px;border-top:1px solid var(--line)}.calc{position:fixed;right:22px;bottom:22px;z-index:10}.calcbutton{width:52px;height:52px;border-radius:16px;background:var(--blue);color:white;font-size:22px;box-shadow:0 8px 24px #2864e855}.calcpop{position:absolute;bottom:62px;right:0;width:245px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:14px;padding:14px}.calcpop input{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;text-align:right;font-size:20px;margin-bottom:9px}.calcgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.calcgrid button{padding:12px 0;background:#edf1f7}.mobiletop{display:none}
+@media(max-width:1050px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}.productlist{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.sidebar{width:72px;padding:14px 8px}.brand{padding:0 6px 18px}.brand>div:last-child,.navlabel,.nav button .navtext,.sidebar-foot{display:none}.brand .logo{width:48px;height:42px}.nav button{justify-content:center;padding:13px 4px}.nav .ico{font-size:18px}.main{margin-left:72px}.topbar{padding:0 15px}.content{padding:18px 14px}.stats{gap:9px}.stat{padding:13px}.stat strong{font-size:20px}.stat-top{font-size:11px}.pagehead{align-items:flex-start;flex-direction:column}.productlist{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}.span2{grid-column:span 1}.cartline{grid-template-columns:minmax(0,1fr) 55px 70px 26px}.cartline input{width:55px}.userchip span{display:none}}
+</style>
+</head>
+<body>
+<div id="loginScreen" class="login">
+ <div class="loginbox">
+  <div class="loginbrand"><div class="logo">G</div><div><h1>Galpão do Gelo</h1><p>Sistema de gestão comercial</p></div></div>
+  <div class="field"><label>E-mail</label><input id="loginEmail" type="email" placeholder="seu@email.com" autocomplete="username"></div>
+  <div class="field"><label>Senha</label><input id="loginPassword" type="password" placeholder="Sua senha" autocomplete="current-password"></div>
+  <button class="primary" onclick="login()">Entrar no sistema</button>
+  <div id="loginMsg" class="loginmsg"></div>
+  <p class="muted" style="font-size:11px;line-height:1.5">Entre com o usuário já cadastrado no seu projeto. Este sistema usa o Supabase configurado para o Galpão do Gelo.</p>
+ </div>
+</div>
+<div id="app" class="wrap hidden">
+ <aside class="sidebar">
+  <div class="brand"><div class="logo">G</div><div><b>GALPÃO DO GELO</b><small>GESTÃO COMERCIAL</small></div></div>
+  <div class="navlabel">PRINCIPAL</div>
+  <nav class="nav">
+   <button class="active" data-page="dashboard" onclick="go('dashboard',this)"><span class="ico">▦</span><span class="navtext">Visão geral</span></button>
+   <button data-page="pdv" onclick="go('pdv',this)"><span class="ico">▣</span><span class="navtext">Frente de caixa</span></button>
+   <button data-page="products" onclick="go('products',this)"><span class="ico">▤</span><span class="navtext">Produtos e estoque</span></button>
+   <button data-page="sales" onclick="go('sales',this)"><span class="ico">↗</span><span class="navtext">Vendas</span></button>
+   <button data-page="cash" onclick="go('cash',this)"><span class="ico">▣</span><span class="navtext">Caixa</span></button>
+  </nav>
+  <div class="navlabel">GESTÃO</div>
+  <nav class="nav">
+   <button data-page="expenses" onclick="go('expenses',this)"><span class="ico">↘</span><span class="navtext">Despesas</span></button>
+   <button data-page="reports" onclick="go('reports',this)"><span class="ico">▥</span><span class="navtext">Relatórios</span></button>
+   <button data-page="users" onclick="go('users',this)"><span class="ico">♙</span><span class="navtext">Usuários</span></button>
+   <button data-page="settings" onclick="go('settings',this)"><span class="ico">⚙</span><span class="navtext">Configurações</span></button>
+  </nav>
+  <div class="sidebar-foot">Galpão do Gelo · PDV<br><span id="sideUser">Conectando…</span></div>
+ </aside>
+ <main class="main">
+  <header class="topbar"><div><div class="crumb">GALPÃO DO GELO / <span id="crumb">VISÃO GERAL</span></div><h2 id="topTitle">Visão geral</h2></div><div class="userchip"><div class="avatar" id="avatar">G</div><div><b id="userName">Usuário</b><div class="muted" style="font-size:11px" id="userRole">Conta conectada</div></div><button class="secondary" onclick="logout()">Sair</button></div></header>
+  <div class="content">
+   <section id="page-dashboard" class="page">
+    <div class="pagehead"><div><h1>Bom trabalho! 👋</h1><p>Acompanhe o movimento do seu comércio hoje.</p></div><button class="primary" onclick="go('pdv')">＋ Nova venda</button></div>
+    <div class="grid stats">
+     <div class="stat"><div class="stat-top">Vendas de hoje <span class="stat-icon">↗</span></div><strong id="dashSales">R$ 0,00</strong><small id="dashSalesCount">0 vendas realizadas</small></div>
+     <div class="stat"><div class="stat-top">Produtos cadastrados <span class="stat-icon">▤</span></div><strong id="dashProducts">0</strong><small>Itens no catálogo</small></div>
+     <div class="stat"><div class="stat-top">Situação do caixa <span class="stat-icon">▣</span></div><strong id="dashCash" style="font-size:20px">Fechado</strong><small id="dashCashSub">Abra o caixa para vender</small></div>
+     <div class="stat"><div class="stat-top">Estoque baixo <span class="stat-icon">!</span></div><strong id="dashLow">0</strong><small>Produtos com até 5 unidades</small></div>
+    </div>
+    <div class="grid two">
+     <div class="panel"><div class="panel-head"><h3>Vendas recentes</h3><button class="secondary" onclick="go('sales')">Ver todas</button></div><div id="recentSales" class="tablewrap"></div></div>
+     <div class="panel"><div class="panel-head"><h3>Estoque para conferir</h3><button class="secondary" onclick="go('products')">Ver produtos</button></div><div id="lowProducts"></div></div>
+    </div>
+   </section>
+   <section id="page-products" class="page hidden">
+    <div class="pagehead"><div><h1>Produtos e estoque</h1><p>Cadastre itens, preços, custos e acompanhe quantidades.</p></div><button class="primary" onclick="openProductForm()">＋ Novo produto</button></div>
+    <div class="panel"><div class="toolbar"><input id="productSearch" placeholder="Buscar por nome ou código..." oninput="renderProducts()"><select id="productFilter" onchange="renderProducts()"><option value="all">Todos os produtos</option><option value="low">Estoque baixo (≤ 5)</option></select><button class="secondary" onclick="loadProducts()">↻ Atualizar</button></div><div id="productsTable" class="tablewrap"></div></div>
+    <div id="productFormPanel" class="panel hidden"><div class="panel-head"><h3 id="productFormTitle">Novo produto</h3><button class="secondary" onclick="closeProductForm()">Fechar</button></div><form id="productForm" onsubmit="saveProduct(event)"><input type="hidden" id="pId"><div class="formgrid">
+     <div class="field"><label>Nome do produto *</label><input id="pNome" required></div><div class="field"><label>Código / código de barras</label><input id="pCodigo"></div>
+     <div class="field"><label>Categoria</label><input id="pCategoria" placeholder="Ex.: Bebidas, gelo"></div><div class="field"><label>Unidade de venda</label><select id="pUnidade"><option value="unidade">Unidade</option><option value="kg">Quilograma (kg)</option><option value="litro">Litro (L)</option><option value="pacote">Pacote</option><option value="fardo">Fardo</option><option value="caixa">Caixa</option></select></div>
+     <div class="field"><label>Preço de venda (R$) *</label><input id="pPreco" type="number" min="0" step=".01" required></div><div class="field"><label>Custo (R$)</label><input id="pCusto" type="number" min="0" step=".01" value="0"></div>
+     <div class="field"><label>Estoque atual</label><input id="pEstoque" type="number" min="0" step=".001" value="0"></div><div class="field"><label>Situação</label><select id="pAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
+    </div><button class="primary" type="submit">Salvar produto</button> <button class="secondary" type="button" onclick="closeProductForm()">Cancelar</button></form></div>
+   </section>
+   <section id="page-pdv" class="page hidden">
+    <div class="pagehead"><div><h1>Frente de caixa</h1><p>Adicione os produtos, confira o total e finalize a venda.</p></div><span id="pdvCashStatus" class="pill red">Caixa fechado</span></div>
+    <div class="notice">Para registrar vendas, abra seu caixa primeiro. O total e o estoque são processados pelo banco de dados.</div>
+    <div class="grid two">
+     <div class="panel"><div class="panel-head"><h3>Selecionar produtos</h3><button class="secondary" onclick="loadProducts()">Atualizar</button></div><div class="toolbar"><input id="pdvSearch" placeholder="Digite nome ou código de barras..." oninput="renderPdvProducts()"></div><div id="pdvProducts" class="productlist"></div></div>
+     <div class="panel"><div class="panel-head"><h3>Venda atual</h3><button class="secondary" onclick="clearCart()">Limpar</button></div><div id="cartItems"><div class="empty">Selecione produtos para começar.</div></div>
+      <div class="formgrid" style="margin-top:15px"><div class="field"><label>Cliente (opcional)</label><input id="saleClient" placeholder="Nome do cliente"></div><div class="field"><label>Pagamento</label><select id="salePayment"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="transferencia">Transferência</option><option value="fiado">Fiado</option></select></div><div class="field"><label>Desconto (R$)</label><input id="saleDiscount" type="number" min="0" step=".01" value="0" oninput="renderCart()"></div><div class="field"><label>Observação</label><input id="saleNote" placeholder="Opcional"></div></div>
+      <div class="totals"><div class="totalrow"><span class="muted">Subtotal</span><b id="cartSubtotal">R$ 0,00</b></div><div class="totalrow"><span class="muted">Desconto</span><b id="cartDiscount">R$ 0,00</b></div><div class="totalrow grand"><span>Total</span><span id="cartTotal">R$ 0,00</span></div></div>
+      <button class="primary" style="width:100%;margin-top:16px;padding:14px" onclick="finishSale()">✓ Finalizar venda</button>
+     </div>
+    </div>
+   </section>
+   <section id="page-sales" class="page hidden">
+    <div class="pagehead"><div><h1>Histórico de vendas</h1><p>Consulte vendas registradas no sistema.</p></div><button class="secondary" onclick="loadSales()">↻ Atualizar</button></div>
+    <div class="panel"><div class="toolbar"><input id="salesSearch" placeholder="Buscar por cliente, pagamento ou status..." oninput="renderSales()"><button class="secondary" onclick="exportSales()">Exportar CSV</button></div><div id="salesTable" class="tablewrap"></div></div>
+   </section>
+   <section id="page-cash" class="page hidden">
+    <div class="pagehead"><div><h1>Controle de caixa</h1><p>Abra e feche o caixa da sua sessão.</p></div><span id="cashPill" class="pill red">Fechado</span></div>
+    <div class="grid two"><div class="panel"><div class="panel-head"><h3>Sessão de caixa</h3></div><div id="cashInfo" class="notice">Carregando situação do caixa…</div><div class="field"><label>Valor inicial (R$)</label><input id="cashOpening" type="number" min="0" step=".01" value="0"></div><button id="openCashBtn" class="primary" onclick="openCash()">Abrir caixa</button> <button id="closeCashBtn" class="danger hidden" onclick="closeCash()">Fechar caixa</button></div>
+    <div class="panel"><div class="panel-head"><h3>Resumo de hoje</h3></div><div class="totalrow" style="padding:12px 0"><span class="muted">Vendas concluídas</span><b id="cashSalesTotal">R$ 0,00</b></div><div class="totalrow" style="padding:12px 0"><span class="muted">Quantidade de vendas</span><b id="cashSalesCount">0</b></div><div class="notice">Suprimentos, sangrias, estornos e fechamento detalhado podem depender de tabelas e regras adicionais no banco. Não faça fechamento fiscal por esta tela.</div></div></div>
+   </section>
+   <section id="page-expenses" class="page hidden">
+    <div class="pagehead"><div><h1>Despesas</h1><p>Registre despesas operacionais neste navegador.</p></div><button class="primary" onclick="expenseFormToggle()">＋ Nova despesa</button></div>
+    <div class="notice">Nesta primeira versão, despesas ficam salvas neste navegador (não sincronizam com outros dispositivos). Para persistência compartilhada, será necessário criar uma tabela no Supabase.</div>
+    <div id="expenseFormPanel" class="panel hidden"><form onsubmit="saveExpense(event)"><div class="formgrid"><div class="field"><label>Descrição *</label><input id="eDesc" required></div><div class="field"><label>Categoria</label><input id="eCat" placeholder="Ex.: energia, transporte"></div><div class="field"><label>Valor (R$) *</label><input id="eValue" type="number" min=".01" step=".01" required></div><div class="field"><label>Data</label><input id="eDate" type="date" required></div></div><button class="primary">Salvar despesa</button></form></div>
+    <div class="panel"><div class="panel-head"><h3>Despesas registradas</h3><b id="expenseSum">R$ 0,00</b></div><div id="expensesTable" class="tablewrap"></div></div>
+   </section>
+   <section id="page-reports" class="page hidden">
+    <div class="pagehead"><div><h1>Relatórios</h1><p>Resumo de vendas e desempenho do catálogo.</p></div><button class="secondary" onclick="refreshAll()">↻ Atualizar dados</button></div>
+    <div class="grid stats"><div class="stat"><div class="stat-top">Vendas registradas</div><strong id="reportCount">0</strong><small>Histórico carregado</small></div><div class="stat"><div class="stat-top">Total vendido</div><strong id="reportTotal">R$ 0,00</strong><small>Vendas concluídas</small></div><div class="stat"><div class="stat-top">Valor médio</div><strong id="reportAverage">R$ 0,00</strong><small>Por venda</small></div><div class="stat"><div class="stat-top">Produtos cadastrados</div><strong id="reportProducts">0</strong><small>Itens no catálogo</small></div></div>
+    <div class="panel"><div class="panel-head"><h3>Vendas por forma de pagamento</h3></div><div id="paymentReport"></div></div>
+   </section>
+   <section id="page-users" class="page hidden">
+    <div class="pagehead"><div><h1>Usuários e permissões</h1><p>Consulte o perfil vinculado à conta conectada.</p></div></div>
+    <div class="panel"><div class="notice">Por segurança, criar usuários requer convite/cadastro pelo Supabase Auth e atribuição de perfil. Não é seguro criar funcionários apenas no navegador.</div><div id="profileInfo">Carregando perfil…</div><p class="muted">Para cadastrar um funcionário, crie a conta em Authentication → Users no Supabase e depois atribua o perfil na tabela <code>profiles</code>.</p></div>
+   </section>
+   <section id="page-settings" class="page hidden">
+    <div class="pagehead"><div><h1>Configurações</h1><p>Preferências do sistema e dados da conexão.</p></div></div>
+    <div class="panel"><h3>Galpão do Gelo</h3><p class="muted">Sistema de gestão comercial conectado ao Supabase.</p><div class="field"><label>Nome do estabelecimento</label><input id="storeName" value="Galpão do Gelo"></div><div class="field"><label>Moeda</label><input value="Real brasileiro (BRL)" disabled></div><button class="primary" onclick="saveSettings()">Salvar nome neste navegador</button><p class="muted" style="margin-top:16px">A emissão fiscal, integração com maquininha/TEF, impressão térmica avançada e funcionamento offline exigem integrações externas e configuração própria.</p></div>
+   </section>
+  </div>
+ </main>
+</div>
+<div class="calc"><div id="calcPop" class="calcpop hidden"><input id="calcDisplay" value="0" readonly><div class="calcgrid">
+<button onclick="calcPress('7')">7</button><button onclick="calcPress('8')">8</button><button onclick="calcPress('9')">9</button><button onclick="calcPress('/')">÷</button>
+<button onclick="calcPress('4')">4</button><button onclick="calcPress('5')">5</button><button onclick="calcPress('6')">6</button><button onclick="calcPress('*')">×</button>
+<button onclick="calcPress('1')">1</button><button onclick="calcPress('2')">2</button><button onclick="calcPress('3')">3</button><button onclick="calcPress('-')">−</button>
+<button onclick="calcPress('0')">0</button><button onclick="calcPress('.')">.</button><button onclick="calcClear()">C</button><button onclick="calcPress('+')">+</button>
+<button onclick="calcBack()" style="grid-column:span 2">⌫</button><button onclick="calcEquals()" class="primary" style="grid-column:span 2">=</button></div></div><button class="calcbutton" title="Calculadora" onclick="document.getElementById('calcPop').classList.toggle('hidden')">⌗</button></div>
+<script>
+const SUPABASE_URL='https://ctnvhmutwofaoixgxqca.supabase.co';
+const SUPABASE_KEY='sb_publishable_CjPE88pdZsPyBOSdgMWKSg_zDK18mfw';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentUser=null, profile=null, products=[], sales=[], cashSession=null, cart=[];
+let expenses=JSON.parse(localStorage.getItem('gelo_expenses')||'[]');
+const $=id=>document.getElementById(id);
+const money=n=>(Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+function msg(el,s){$(el).textContent=s}
+async function login(){msg('loginMsg','');const email=$('loginEmail').value.trim(),password=$('loginPassword').value;if(!email||!password){msg('loginMsg','Informe e-mail e senha.');return}const {error}=await db.auth.signInWithPassword({email,password});if(error){msg('loginMsg',error.message);return}await boot()}
+async function logout(){await db.auth.signOut();location.reload()}
+async function boot(){const {data:{user}}=await db.auth.getUser();if(!user){$('loginScreen').classList.remove('hidden');$('app').classList.add('hidden');return}currentUser=user;const {data:p,error}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();profile=p||{nome:user.email,role:'usuário'};$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');$('userName').textContent=profile.nome||user.email;$('userRole').textContent=profile.role||'Usuário';$('sideUser').textContent=profile.nome||user.email;$('avatar').textContent=(profile.nome||user.email||'G').slice(0,1).toUpperCase();if(error)console.warn(error);await refreshAll()}
+function go(page,btn){document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));$('page-'+page).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));const titles={dashboard:'Visão geral',pdv:'Frente de caixa',products:'Produtos e estoque',sales:'Vendas',cash:'Controle de caixa',expenses:'Despesas',reports:'Relatórios',users:'Usuários',settings:'Configurações'};$('topTitle').textContent=titles[page];$('crumb').textContent=titles[page].toUpperCase();if(page==='pdv')renderPdvProducts();if(page==='cash')renderCash();if(page==='expenses')renderExpenses();if(page==='users')renderProfile()}
+async function refreshAll(){await Promise.all([loadProducts(),loadSales(),loadCash()]);renderDashboard();renderProducts();renderSales();renderReports();renderCash();renderPdvProducts()}
+async function loadProducts(){const {data,error}=await db.from('products').select('*').order('nome');if(error){console.error(error);alert('Não consegui carregar produtos: '+error.message);return}products=data||[];renderProducts();renderDashboard();renderPdvProducts();renderReports()}
+async function loadSales(){const table=$('salesTable');if(table)table.innerHTML='<div class="empty">Carregando vendas...</div>';const {data,error}=await db.from('sales').select('*').order('created_at',{ascending:false}).limit(500);if(error){console.error('Erro ao carregar vendas:',error);sales=[];if(table)table.innerHTML='<div class="notice">Não foi possível carregar as vendas.<br><b>Erro do Supabase:</b> '+esc(error.message)+'</div>';renderDashboard();renderReports();renderCash();return}sales=data||[];renderSales();renderDashboard();renderReports();renderCash()}
+async function loadCash(){if(!currentUser)return;const {data,error}=await db.from('cash_sessions').select('*').eq('aberto_por',currentUser.id).eq('status','aberto').order('aberto_em',{ascending:false}).limit(1).maybeSingle();cashSession=data||null;if(error)console.warn('Caixa:',error.message);renderCash();renderDashboard()}
+function renderDashboard(){const start=new Date();start.setHours(0,0,0,0);const todays=sales.filter(s=>new Date(s.created_at)>=start&&['concluida','concluído','concluida'].includes(String(s.status||'').toLowerCase()));$('dashSales').textContent=money(todays.reduce((a,s)=>a+Number(s.total||0),0));$('dashSalesCount').textContent=todays.length+' vendas realizadas';$('dashProducts').textContent=products.filter(p=>p.ativo!==false).length;$('dashCash').textContent=cashSession?'Aberto':'Fechado';$('dashCashSub').textContent=cashSession?'Caixa aberto em '+new Date(cashSession.aberto_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Abra o caixa para vender';const low=products.filter(p=>p.ativo!==false&&Number(p.estoque||0)<=5);$('dashLow').textContent=low.length;$('lowProducts').innerHTML=low.length?low.slice(0,6).map(p=>`<div class="totalrow" style="padding:11px 0;border-bottom:1px solid var(--line)"><span>${esc(p.nome)}</span><span class="pill ${Number(p.estoque)<=0?'red':' '}">${Number(p.estoque||0)} ${esc(p.unidade||'un.')}</span></div>`).join(''):'<div class="empty">Nenhum produto com estoque baixo.</div>';$('recentSales').innerHTML=sales.length?tableSales(sales.slice(0,6)):'<div class="empty">Ainda não há vendas para mostrar.</div>'}
+function renderProducts(){const q=($('productSearch')?.value||'').toLowerCase(),filter=$('productFilter')?.value||'all';let list=products.filter(p=>(String(p.nome||'').toLowerCase().includes(q)||String(p.codigo||'').toLowerCase().includes(q))&&(filter!=='low'||Number(p.estoque||0)<=5));$('productsTable').innerHTML=list.length?`<table><thead><tr><th>Produto</th><th>Código</th><th>Categoria</th><th>Unidade</th><th>Preço</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead><tbody>${list.map(p=>`<tr><td><b>${esc(p.nome)}</b></td><td>${esc(p.codigo||'—')}</td><td>${esc(p.categoria||'—')}</td><td>${esc(p.unidade||'unidade')}</td><td>${money(p.preco)}</td><td><span class="pill ${Number(p.estoque)<=5?'red':'green'}">${Number(p.estoque||0)}</span></td><td><span class="pill ${p.ativo===false?'red':'green'}">${p.ativo===false?'Inativo':'Ativo'}</span></td><td><div class="actions"><button class="secondary" onclick="editProduct('${p.id}')">Editar</button><button class="danger" onclick="toggleProduct('${p.id}',${p.ativo===false?'true':'false'})">${p.ativo===false?'Ativar':'Inativar'}</button></div></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhum produto encontrado. Clique em “Novo produto” para cadastrar.</div>'}
+function openProductForm(){ $('productForm').reset();$('pId').value='';$('pCusto').value='0';$('pEstoque').value='0';$('pAtivo').value='true';$('productFormTitle').textContent='Novo produto';$('productFormPanel').classList.remove('hidden');$('productFormPanel').scrollIntoView({behavior:'smooth',block:'start'})}
+function closeProductForm(){$('productFormPanel').classList.add('hidden')}
+function editProduct(id){const p=products.find(x=>x.id===id);if(!p)return;$('pId').value=p.id;$('pNome').value=p.nome||'';$('pCodigo').value=p.codigo||'';$('pCategoria').value=p.categoria||'';$('pUnidade').value=p.unidade||'unidade';$('pPreco').value=p.preco||0;$('pCusto').value=p.custo||0;$('pEstoque').value=p.estoque||0;$('pAtivo').value=String(p.ativo!==false);$('productFormTitle').textContent='Editar produto';$('productFormPanel').classList.remove('hidden');$('productFormPanel').scrollIntoView({behavior:'smooth',block:'start'})}
+async function saveProduct(e){e.preventDefault();const id=$('pId').value;const payload={nome:$('pNome').value.trim(),codigo:$('pCodigo').value.trim()||null,categoria:$('pCategoria').value.trim()||null,unidade:$('pUnidade').value,preco:Number($('pPreco').value),custo:Number($('pCusto').value||0),estoque:Number($('pEstoque').value||0),ativo:$('pAtivo').value==='true'};let result=id?await db.from('products').update(payload).eq('id',id):await db.from('products').insert(payload);if(result.error){alert('Não foi possível salvar o produto: '+result.error.message);return}closeProductForm();await loadProducts();alert('Produto salvo com sucesso!')}
+async function toggleProduct(id,active){const {error}=await db.from('products').update({ativo:active==='true'}).eq('id',id);if(error){alert('Não foi possível alterar o produto: '+error.message);return}await loadProducts()}
+function renderPdvProducts(){if(!$('pdvProducts'))return;const q=($('pdvSearch')?.value||'').toLowerCase();const list=products.filter(p=>p.ativo!==false&&(String(p.nome||'').toLowerCase().includes(q)||String(p.codigo||'').toLowerCase().includes(q)));$('pdvProducts').innerHTML=list.length?list.map(p=>`<button class="productbtn" onclick="addCart('${p.id}')"><b>${esc(p.nome)}</b><small>${money(p.preco)} · Estoque: ${Number(p.estoque||0)} ${esc(p.unidade||'')}</small></button>`).join(''):'<div class="empty">Nenhum produto encontrado.</div>'}
+function addCart(id){const p=products.find(x=>x.id===id);if(!p)return;if(Number(p.estoque||0)<=0){alert('Este produto está sem estoque.');return}const item=cart.find(x=>x.id===id);if(item){if(item.q+1>Number(p.estoque)){alert('Quantidade maior que o estoque disponível.');return}item.q++}else cart.push({id:p.id,nome:p.nome,preco:Number(p.preco),custo:Number(p.custo||0),estoque:Number(p.estoque||0),q:1});renderCart()}
+function changeQty(id,val){const it=cart.find(x=>x.id===id);if(!it)return;const q=Number(val);if(!Number.isFinite(q)||q<=0){cart=cart.filter(x=>x.id!==id)}else if(q>it.estoque){alert('Quantidade maior que o estoque disponível.');it.q=it.estoque}else it.q=q;renderCart()}
+function removeCart(id){cart=cart.filter(x=>x.id!==id);renderCart()}
+function clearCart(){cart=[];renderCart()}
+function renderCart(){const sub=cart.reduce((a,x)=>a+x.preco*x.q,0),discount=Math.max(0,Math.min(Number($('saleDiscount')?.value||0),sub));$('cartSubtotal').textContent=money(sub);$('cartDiscount').textContent=money(discount);$('cartTotal').textContent=money(sub-discount);$('cartItems').innerHTML=cart.length?cart.map(x=>`<div class="cartline"><div><b>${esc(x.nome)}</b><div class="muted">${money(x.preco)} cada</div></div><input aria-label="Quantidade" type="number" min=".001" step=".001" value="${x.q}" onchange="changeQty('${x.id}',this.value)"><b>${money(x.q*x.preco)}</b><button class="danger" style="padding:6px" onclick="removeCart('${x.id}')">×</button></div>`).join(''):'<div class="empty">Selecione produtos para começar.</div>'}
+async function finishSale(){if(!cart.length){alert('Adicione pelo menos um produto.');return}if(!cashSession){alert('Abra o caixa antes de finalizar a venda.');go('cash');return}const discount=Number($('saleDiscount').value||0);if(discount<0||discount>cart.reduce((a,x)=>a+x.preco*x.q,0)){alert('Confira o valor do desconto.');return}const items=cart.map(x=>({produto_id:x.id,quantidade:x.q}));const args={p_itens:items,p_pagamento:$('salePayment').value,p_desconto:discount,p_cliente:$('saleClient').value.trim()||null,p_observacao:$('saleNote').value.trim()||null};const {data,error}=await db.rpc('finalizar_venda',args);if(error){alert('A venda não foi concluída: '+error.message);return}alert('Venda registrada com sucesso!');clearCart();$('saleClient').value='';$('saleNote').value='';$('saleDiscount').value='0';await refreshAll();go('sales')}
+function tableSales(list){return `<table><thead><tr><th>Data</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th></tr></thead><tbody>${list.map(s=>`<tr><td>${new Date(s.created_at).toLocaleString('pt-BR')}</td><td>${esc(s.cliente||'Consumidor')}</td><td>${esc(s.pagamento||'—')}</td><td><b>${money(s.total)}</b></td><td><span class="pill ${String(s.status).toLowerCase().includes('conclu')?'green':'red'}">${esc(s.status||'—')}</span></td></tr>`).join('')}</tbody></table>`}
+function renderSales(){if(!$('salesTable'))return;const q=($('salesSearch')?.value||'').toLowerCase(),list=sales.filter(s=>[s.cliente,s.pagamento,s.status].some(v=>String(v||'').toLowerCase().includes(q)));$('salesTable').innerHTML=list.length?tableSales(list):'<div class="empty">Nenhuma venda encontrada para esta pesquisa.</div>'}
+function exportSales(){const rows=[['Data','Cliente','Pagamento','Total','Status'],...sales.map(s=>[new Date(s.created_at).toLocaleString('pt-BR'),s.cliente||'',s.pagamento||'',s.total||0,s.status||''])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='vendas-galpao-do-gelo.csv';a.click();URL.revokeObjectURL(a.href)}
+async function openCash(){const amount=Number($('cashOpening').value||0);if(amount<0){alert('O valor inicial não pode ser negativo.');return}const {data,error}=await db.rpc('abrir_caixa',{p_valor_inicial:amount});if(error){alert('Não foi possível abrir o caixa: '+error.message);return}await loadCash();alert('Caixa aberto!')}
+async function closeCash(){if(!cashSession)return;const final=prompt('Informe o valor contado no caixa (R$):',String(cashSession.valor_inicial||0));if(final===null)return;const n=Number(final.replace(',','.'));if(!Number.isFinite(n)||n<0){alert('Informe um valor válido.');return}const {error}=await db.from('cash_sessions').update({fechado_em:new Date().toISOString(),valor_final:n,status:'fechado'}).eq('id',cashSession.id);if(error){alert('Não foi possível fechar o caixa: '+error.message);return}cashSession=null;await loadCash();alert('Caixa fechado.')}
+function renderCash(){if(!$('cashInfo'))return;const open=!!cashSession;$('cashPill').textContent=open?'Aberto':'Fechado';$('cashPill').className='pill '+(open?'green':'red');$('pdvCashStatus').textContent=open?'Caixa aberto':'Caixa fechado';$('pdvCashStatus').className='pill '+(open?'green':'red');$('cashInfo').textContent=open?'Caixa aberto em '+new Date(cashSession.aberto_em).toLocaleString('pt-BR')+'. Valor inicial: '+money(cashSession.valor_inicial)+'.':'Nenhum caixa aberto para seu usuário.';$('openCashBtn').classList.toggle('hidden',open);$('closeCashBtn').classList.toggle('hidden',!open);$('cashSalesTotal').textContent=money(sales.filter(s=>new Date(s.created_at).toDateString()===new Date().toDateString()&&String(s.status||'').toLowerCase().includes('conclu')).reduce((a,s)=>a+Number(s.total||0),0));$('cashSalesCount').textContent=sales.filter(s=>new Date(s.created_at).toDateString()===new Date().toDateString()).length}
+function renderReports(){if(!$('reportCount'))return;const completed=sales.filter(s=>String(s.status||'').toLowerCase().includes('conclu'));const total=completed.reduce((a,s)=>a+Number(s.total||0),0);$('reportCount').textContent=completed.length;$('reportTotal').textContent=money(total);$('reportAverage').textContent=money(completed.length?total/completed.length:0);$('reportProducts').textContent=products.length;const groups={};completed.forEach(s=>{const p=s.pagamento||'Não informado';groups[p]=(groups[p]||0)+Number(s.total||0)});$('paymentReport').innerHTML=Object.keys(groups).length?Object.entries(groups).map(([k,v])=>`<div class="totalrow" style="padding:12px 0;border-bottom:1px solid var(--line)"><span>${esc(k)}</span><b>${money(v)}</b></div>`).join(''):'<div class="empty">Sem vendas concluídas para analisar.</div>'}
+function expenseFormToggle(){$('expenseFormPanel').classList.toggle('hidden');$('eDate').value=today()}
+function saveExpense(e){e.preventDefault();expenses.push({id:Date.now(),desc:$('eDesc').value.trim(),cat:$('eCat').value.trim(),value:Number($('eValue').value),date:$('eDate').value});localStorage.setItem('gelo_expenses',JSON.stringify(expenses));e.target.reset();expenseFormToggle();renderExpenses()}
+function renderExpenses(){if(!$('expensesTable'))return;$('expenseSum').textContent=money(expenses.reduce((a,x)=>a+x.value,0));$('expensesTable').innerHTML=expenses.length?`<table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th></th></tr></thead><tbody>${expenses.slice().reverse().map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.desc)}</td><td>${esc(x.cat||'—')}</td><td><b>${money(x.value)}</b></td><td><button class="danger" onclick="deleteExpense(${x.id})">Excluir</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhuma despesa cadastrada.</div>'}
+function deleteExpense(id){expenses=expenses.filter(x=>x.id!==id);localStorage.setItem('gelo_expenses',JSON.stringify(expenses));renderExpenses()}
+function renderProfile(){$('profileInfo').innerHTML=`<div class="totalrow" style="padding:12px 0"><span class="muted">Nome</span><b>${esc(profile?.nome||currentUser?.email||'—')}</b></div><div class="totalrow" style="padding:12px 0"><span class="muted">E-mail</span><b>${esc(currentUser?.email||'—')}</b></div><div class="totalrow" style="padding:12px 0"><span class="muted">Permissão</span><span class="pill">${esc(profile?.role||'usuário')}</span></div>`}
+function saveSettings(){localStorage.setItem('gelo_store_name',$('storeName').value.trim()||'Galpão do Gelo');alert('Nome salvo neste navegador.')}
+let calcExpr='0';function calcRender(){$('calcDisplay').value=calcExpr}function calcPress(v){if(calcExpr==='Erro')calcExpr='0';if(calcExpr==='0'&&/[0-9.]/.test(v))calcExpr=v;else calcExpr+=v;calcRender()}function calcClear(){calcExpr='0';calcRender()}function calcBack(){calcExpr=calcExpr.length>1?calcExpr.slice(0,-1):'0';calcRender()}function calcEquals(){try{if(!/^[0-9+\-*/(). ]+$/.test(calcExpr))throw Error();const result=Function('"use strict";return ('+calcExpr+')')();calcExpr=Number.isFinite(result)?String(Math.round(result*1000000)/1000000):'Erro'}catch{calcExpr='Erro'}calcRender()}
+db.auth.onAuthStateChange((_event,session)=>{if(session?.user&&!currentUser)boot()});
+(async()=>{const name=localStorage.getItem('gelo_store_name');if(name)$('storeName').value=name;await boot()})();
+</script>
+</body></html>
