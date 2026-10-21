@@ -1,0 +1,99 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galpão do Gelo | PDV</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      color: #172033;
+    }
+    header {
+      background: #102b46;
+      color: white;
+      padding: 22px;
+    }
+    main {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 22px;
+      border-radius: 12px;
+      margin-bottom: 18px;
+      box-shadow: 0 3px 12px #0000000c;
+    }
+    input, button {
+      padding: 12px;
+      border-radius: 7px;
+      border: 1px solid #cbd5e1;
+      margin: 5px 0;
+    }
+    button {
+      background: #087e8b;
+      color: white;
+      border: 0;
+      cursor: pointer;
+    }
+    .resultado { font-size: 24px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Galpão do Gelo</h1>
+    <p>Sistema de vendas e controle comercial</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Calculadora</h2>
+      <input id="a" type="number" placeholder="Primeiro número">
+      <input id="b" type="number" placeholder="Segundo número">
+      <br>
+      <button onclick="calcular('+')">Somar</button>
+      <button onclick="calcular('-')">Subtrair</button>
+      <button onclick="calcular('*')">Multiplicar</button>
+      <button onclick="calcular('/')">Dividir</button>
+      <p id="resultado" class="resultado">Resultado: 0</p>
+    </section>
+
+    <section class="card">
+      <h2>Próximos módulos</h2>
+      <p>Cadastro de produtos e estoque por unidade.</p>
+      <p>Frente de caixa e registro de vendas.</p>
+      <p>Despesas, movimentações e fechamento de caixa.</p>
+      <p>Login de funcionários e relatórios.</p>
+    </section>
+  </main>
+
+  <script>
+    function calcular(operacao) {
+      const a = Number(document.getElementById('a').value);
+      const b = Number(document.getElementById('b').value);
+      let resultado;
+
+      if (operacao === '+') resultado = a + b;
+      if (operacao === '-') resultado = a - b;
+      if (operacao === '*') resultado = a * b;
+      if (operacao === '/') {
+        if (b === 0) {
+          document.getElementById('resultado').textContent =
+            'Não é possível dividir por zero.';
+          return;
+        }
+        resultado = a / b;
+      }
+
+      document.getElementById('resultado').textContent =
+        'Resultado: ' + resultado;
+    }
+  </script>
+</body>
+</html>
